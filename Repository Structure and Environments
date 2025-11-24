@@ -1,0 +1,47 @@
+thumbsup/
+├─ docs/
+│  ├─ README.md
+│  ├─ api/
+│  │  ├─ openapi.yaml
+│  │  └─ integration_guides.md
+│  ├─ architecture/
+│  │  ├─ system_overview.md
+│  │  ├─ threat_model.md
+│  │  └─ data_flows.md
+│  ├─ compliance/
+│  │  ├─ privacy_consent_ui.md
+│  │  └─ kyc_aml_tiers.md
+│  └─ hardware/
+│     ├─ thumbdrive_firmware_spec.md
+│     └─ pos_chip_rf_ir_interface.md
+├─ packages/
+│  ├─ sdk-web/           # JS/TS web SDK
+│  ├─ sdk-mobile/        # iOS/Android bindings
+│  ├─ sdk-pos/           # POS connectors (chip/RF/IR & receipt ThumbCode)
+│  ├─ token-core/        # Token ledger adapters & attestations
+│  ├─ wallet-core/       # Key mgmt, signing, custody modes
+│  └─ analytics/         # Event schemas, dashboards, ETL
+├─ services/
+│  ├─ attestation/       # Validate ThumbCodes/events, anti‑fraud
+│  ├─ settlement/        # Merchant reconciliation & payouts
+│  ├─ campaigns/         # Sponsored thumbs & loyalty budgets
+│  └─ api-gateway/       # Public REST/GraphQL interface
+├─ apps/
+│  ├─ mobile/            # React Native / SwiftUI / Kotlin
+│  ├─ dashboard/         # Merchant & creator analytics
+│  └─ kiosk/             # RingMint/receipt kiosks (optional)
+├─ hardware/
+│  ├─ firmware/          # Secure element, biometrics, transport
+│  └─ reference/         # PCB, enclosure, testing
+├─ .github/
+│  ├─ ISSUE_TEMPLATE/
+│  │  ├─ bug_report.md
+│  │  └─ feature_request.md
+│  ├─ PULL_REQUEST_TEMPLATE.md
+│  └─ workflows/
+│     ├─ ci.yml
+│     ├─ lint.yml
+│     └─ release.yml
+├─ SECURITY.md
+├─ CONTRIBUTING.md
+└─ LICENSE
