@@ -115,13 +115,12 @@ ThumbsUp sits at the intersection of **social validation + creator monetization 
 ---
 
 ##  Seed Funding Request
-We are raising a **$5M seed round** to accelerate development and adoption:
+We are raising a **$5M seed round** to accelerate development and adoption:Investor thumbcode.cb.id
 - **$2M** — Product & Engineering (API, SDK, mobile app, payment rails).
 - **$1.5M** — Market Development (enterprise pilots, creator onboarding, sponsor integrations).
 - **$1M** — Compliance & IP (patent filings, regulatory frameworks).
 - **$0.5M** — Operations & Governance.
-- **thumbcode.cb.id** Investor 
-**Target runway**: 18 months.  
+- **Target runway**: 18 months.  
 **Milestones**: 1M feedback events/month, 50 enterprise integrations, 100k active creators.
 
 ---
