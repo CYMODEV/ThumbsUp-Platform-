@@ -120,7 +120,7 @@ We are raising a **$5M seed round** to accelerate development and adoption:
 - **$1.5M** — Market Development (enterprise pilots, creator onboarding, sponsor integrations).
 - **$1M** — Compliance & IP (patent filings, regulatory frameworks).
 - **$0.5M** — Operations & Governance.
-- **thumbcode.cb.id
+- **thumbcode.cb.id** Investor 
 **Target runway**: 18 months.  
 **Milestones**: 1M feedback events/month, 50 enterprise integrations, 100k active creators.
 
