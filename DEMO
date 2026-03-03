@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ThumbsUp Full Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #020617;
+      --card-glass: rgba(15, 23, 42, 0.55);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #22c55e;
+      --accent-glow: rgba(34, 197, 94, 0.4);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --highlight: #38bdf8;
+      --surface: rgba(255, 255, 255, 0.04);
+    }
+    
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    
+    body {
+      margin: 0; background-color: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      overflow-x: hidden; position: relative;
+    }
+
+    /* Animated Background */
+    .bg-orb {
+      position: fixed; border-radius: 50%; filter: blur(120px);
+      z-index: -1; opacity: 0.35; animation: drift 20s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #064e3b; }
+    .orb-2 { bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: #1e1b4b; animation-delay: -5s; }
+    .orb-3 { top: 40%; left: 60%; width: 30vw; height: 30vw; background: #022c22; animation-delay: -10s; }
+    @keyframes drift { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(10%, 10%) scale(1.1); } }
+
+    /* Header */
+    header {
+      padding: 24px 32px; display: flex; align-items: center; justify-content: space-between;
+      position: absolute; top: 0; left: 0; right: 0; z-index: 20; pointer-events: none;
+    }
+    header > div { pointer-events: auto; }
+    header h1 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: -0.02em;}
+    header h1 span.logo {
+      width: 32px; height: 32px; border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #bbf7d0, #22c55e 40%, #16a34a 70%, #052e16 100%);
+      display: inline-flex; align-items: center; justify-content: center; color: #022c22;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .tagline { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: 0.05em; text-transform: uppercase;}
+
+    /* Main Layout */
+    main {
+      flex: 1; padding: 24px 80px 24px 20px; max-width: 1400px; width: 100%;
+      margin: 80px auto 40px; perspective: 1200px; position: relative; z-index: 10;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
+    @media (max-width: 1024px) { .grid, .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+
+    /* Navigation */
+    .floating-nav {
+      position: fixed; top: 50%; right: 24px; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 16px; z-index: 50;
+    }
+    .nav-icon-btn {
+      background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 20px rgba(0,0,0,0.4); position: relative;
+    }
+    .nav-icon-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
+    .nav-icon-btn.active {
+      color: var(--accent); background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 0 20px rgba(34,197,94,0.3);
+    }
+    .nav-icon-btn.active::after {
+      content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);
+    }
+    .nav-divider { width: 24px; height: 1px; background: rgba(255,255,255,0.15); margin: 4px auto; }
+    .icon { width: 20px; height: 20px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Mobile Simulator View */
+    main.is-mobile {
+      max-width: 420px; padding: 40px 16px 24px; margin-top: 100px;
+      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(20px);
+      border: 8px solid #0f172a; border-radius: 40px; box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+    }
+    main.is-mobile::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 140px; height: 28px; background: #0f172a; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+    }
+    main.is-mobile .grid, main.is-mobile .grid-2 { grid-template-columns: 1fr !important; }
+
+    /* Cards */
+    .card-wrapper { position: relative; transform-style: preserve-3d; transition: transform 0.4s; height: 100%; z-index: 1;}
+    .card {
+      background: var(--card-glass); backdrop-filter: blur(24px); border-radius: 24px;
+      border: 1px solid var(--card-border); padding: 24px; height: 100%; display: flex; flex-direction: column;
+      box-shadow: 0 24px 40px rgba(0,0,0,0.4); position: relative; overflow: hidden;
+    }
+    .card-glare {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 24px;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 60%);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10; mix-blend-mode: overlay;
+    }
+    .card-wrapper:hover .card-glare { opacity: 1; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; z-index: 2; position: relative;}
+    .card-title { font-size: 16px; font-weight: 600; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+    
+    /* UI Elements */
+    .badge { font-size: 10px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
+    .badge.green { background: rgba(34,197,94,0.1); color: var(--accent); border-color: rgba(34,197,94,0.3); }
+    .badge.orange { background: rgba(245,158,11,0.1); color: var(--warning); border-color: rgba(245,158,11,0.3); }
+    .badge.purple { background: rgba(168,85,247,0.1); color: #c084fc; border-color: rgba(168,85,247,0.3); }
+
+    .btn {
+      border-radius: 12px; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s; position: relative; z-index: 2;
+    }
+    .btn-primary { background: linear-gradient(135deg, #4ade80, #16a34a); color: #022c22; box-shadow: 0 8px 20px rgba(34,197,94,0.3); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(34,197,94,0.4); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+    input, textarea {
+      width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.3); color: var(--text); font-size: 14px; outline: none;
+      transition: all 0.2s; position: relative; z-index: 2; margin-bottom: 12px;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); background: rgba(0,0,0,0.5); box-shadow: 0 0 0 2px var(--accent-glow); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* --- SPECIFIC MODULES --- */
+
+    /* 1. Voting & Sentiment (IMG_2116) */
+    .vote-block { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; position: relative; z-index: 2;}
+    .vote-btn { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px 16px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s; color: var(--muted); }
+    .vote-btn svg { width: 48px; height: 48px; transition: all 0.3s; }
+    .vote-btn:hover { background: var(--surface); color: var(--text); transform: translateY(-2px); }
+    .vote-btn.up.active { background: rgba(34,197,94,0.15); border-color: var(--accent); color: var(--accent); box-shadow: 0 10px 30px rgba(34,197,94,0.2); }
+    .vote-btn.up.active svg { transform: scale(1.1) rotate(-10deg); filter: drop-shadow(0 0 10px var(--accent)); }
+    .vote-btn.down.active { background: rgba(239,68,68,0.15); border-color: var(--danger); color: var(--danger); box-shadow: 0 10px 30px rgba(239,68,68,0.2); }
+    .vote-btn.down.active svg { transform: scale(1.1) rotate(10deg); filter: drop-shadow(0 0 10px var(--danger)); }
+
+    /* 2. Reward Box */
+    .reward-box { display: flex; align-items: center; gap: 12px; background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.4); padding: 12px 16px; border-radius: 12px; margin-top: 8px; position: relative; z-index: 2; }
+    .reward-icon { background: var(--warning); color: #000; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: monospace; }
+    
+    /* 3. Polls & Governance (IMG_2119) */
+    .poll-row { margin-bottom: 16px; position: relative; z-index: 2;}
+    .poll-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .poll-track { width: 100%; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+    .poll-fill { height: 100%; background: linear-gradient(90deg, #ea580c, #f97316); width: 0%; transition: width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; padding-left: 12px; color: #fff; font-weight: bold; font-size: 12px;}
+    .poll-fill.winner { background: linear-gradient(90deg, #16a34a, #4ade80); }
+
+    /* 4. Tip Jar (IMG_2119) */
+    .tip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; position: relative; z-index: 2;}
+    .tip-btn { background: var(--surface); border: 1px solid rgba(255,255,255,0.1); color: var(--text); border-radius: 8px; padding: 12px 0; text-align: center; font-weight: 600; font-family: monospace; cursor: pointer; transition: all 0.2s; }
+    .tip-btn:hover { background: rgba(245,158,11,0.15); border-color: var(--warning); color: var(--warning); }
+
+    /* 5. Creator Toggles (IMG_2125) */
+    .creator-toggle { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 12px; position: relative; z-index: 2; transition: all 0.2s; }
+    .creator-toggle:hover { background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.1); }
+    .creator-toggle-label { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
+    .creator-toggle-label svg { color: var(--muted); }
+    
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px; border: 1px solid rgba(255,255,255,0.2); }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #cbd5e1; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: rgba(34,197,94,0.3); border-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+    /* Creator Functions Registry */
+    .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; position: relative; z-index: 2; margin-top: 16px; }
+    .module-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; }
+    .module-box h4 { margin: 0 0 12px 0; color: var(--text); font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .module-box h4 svg { color: var(--highlight); }
+    .module-box .input-group { margin-bottom: 12px; }
+    .module-box label { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; display: block; }
+    .module-box input { padding: 10px 12px; font-size: 13px; border-radius: 8px; margin-bottom: 0; }
+    @media (max-width: 1024px) { .module-grid { grid-template-columns: 1fr; } }
+
+    /* 6. Playbook Table (IMG_2219) */
+    .playbook-table { width: 100%; border-collapse: collapse; font-size: 13px; position: relative; z-index: 2; background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; }
+    .playbook-table th { background: rgba(255,255,255,0.05); color: var(--muted); text-transform: uppercase; font-size: 10px; padding: 12px 16px; text-align: left; letter-spacing: 0.05em; }
+    .playbook-table td { padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    .playbook-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.05); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; margin-right: 12px; color: var(--accent); float: left; }
+    .reward-text { font-family: monospace; color: var(--warning); font-weight: 700; font-size: 14px; }
+
+    /* 7. Ledger & Network */
+    .ledger-table { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 2; }
+    .ledger-row { display: grid; grid-template-columns: 80px 1fr 80px 80px; align-items: center; background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); font-size: 12px; animation: slideDown 0.3s forwards; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .ledger-row .hash { font-family: ui-monospace, monospace; color: var(--highlight); }
+    .ledger-row .amt { justify-self: end; font-family: monospace; font-weight: 700; color: var(--text); }
+    .ledger-row .time { justify-self: end; color: var(--muted); font-size: 10px; }
+
+    /* 8. Ecosystem Matrix (IMG_2123) */
+    .matrix-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; position: relative; z-index: 2; }
+    .matrix-col { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; }
+    .matrix-col h4 { margin: 0 0 12px 0; color: #ea580c; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .matrix-col ul { list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--muted); }
+    .matrix-col ul li { margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .matrix-col ul li::before { content: '•'; color: var(--accent); }
+
+    /* Thumb Gesture 3D */
+    .gesture-container { position: fixed; bottom: 40px; right: 40px; width: 70px; height: 70px; z-index: 100; perspective: 1000px; }
+    .gesture-sphere {
+      width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #86efac, #22c55e, #14532d);
+      box-shadow: inset -8px -8px 16px rgba(0,0,0,0.6), inset 8px 8px 16px rgba(255,255,255,0.5), 0 10px 25px rgba(34,197,94,0.4);
+      display: flex; align-items: center; justify-content: center; animation: float 4s ease-in-out infinite;
+      cursor: pointer; transform-style: preserve-3d; transition: all 0.2s;
+    }
+    .gesture-sphere svg { color: #022c22; filter: drop-shadow(0 2px 2px rgba(255,255,255,0.4)); width: 32px; height: 32px; pointer-events: none;}
+    .gesture-sphere:active { transform: scale(0.9); }
+    .gesture-sphere.pop { animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3) rotate(-15deg); filter: brightness(1.3); } 100% { transform: scale(1) rotate(0); } }
+
+    .particle { position: absolute; width: 16px; height: 16px; color: #4ade80; pointer-events: none; opacity: 0; z-index: 99;}
+    @keyframes fly { 0% { opacity: 1; transform: translate(0,0) scale(0.5); } 100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1.5) rotate(var(--rot)); } }
+
+    /* Ledger Ticker */
+    .network-ticker {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 32px; background: rgba(2, 6, 23, 0.9);
+      border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; padding: 0 16px; z-index: 50;
+      font-family: monospace; font-size: 11px; color: var(--muted); overflow: hidden;
+    }
+    .ticker-content { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; }
+    .ticker-item { margin-right: 32px; display: inline-flex; align-items: center; gap: 8px; }
+    .ticker-item strong { color: var(--highlight); }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* Delivery Modes & Bearer Skeumorphism */
+    .delivery-options { display: flex; gap: 8px; width: 100%; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 16px; position: relative; z-index: 2; }
+    .delivery-btn { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .delivery-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .delivery-btn.active { background: rgba(34,197,94,0.15); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 15px rgba(34,197,94,0.2); }
+    .delivery-btn.active[data-mode="web3"] { background: rgba(56,189,248,0.15); border-color: var(--highlight); color: var(--highlight); box-shadow: 0 0 15px rgba(56,189,248,0.2); }
+    .delivery-btn.active[data-mode="bearer"] { background: rgba(251,191,36,0.15); border-color: var(--bearer); color: var(--bearer); box-shadow: 0 0 15px rgba(251,191,36,0.2); }
+
+    .thumbcode-display { margin-top: 16px; padding: 16px; border-radius: 12px; background: linear-gradient(145deg, rgba(34,197,94,0.1), rgba(0,0,0,0.4)); border: 1px solid rgba(34,197,94,0.3); display: flex; justify-content: space-between; align-items: stretch; gap: 12px; position: relative; overflow: hidden; transition: all 0.3s; }
+    .thumbcode-display span.code { font-family: ui-monospace, monospace; letter-spacing: 0.2em; font-size: 18px; font-weight: 700; color: var(--accent); }
+    
+    .thumbcode-display.bearer-mode { background: linear-gradient(145deg, rgba(69, 26, 3, 0.8), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(251, 191, 36, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(251, 191, 36, 0.1); }
+    .thumbcode-display.bearer-mode::after { content: 'BEARER INSTRUMENT'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-10deg); font-size: 28px; font-weight: 800; color: rgba(251, 191, 36, 0.05); pointer-events: none; white-space: nowrap; letter-spacing: 0.2em; }
+    .thumbcode-display.bearer-mode span.code { color: var(--bearer); text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+    .crypto-signature { font-family: ui-monospace, monospace; font-size: 8px; color: rgba(251, 191, 36, 0.6); word-break: break-all; margin-top: 6px; line-height: 1.2; max-width: 180px; }
+
+    .qr-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 48px; height: 48px; padding: 4px; background: rgba(0,0,0,0.5); border-radius: 8px; border: 1px solid rgba(34,197,94,0.3); flex-shrink: 0; transition: all 0.5s; }
+    .bearer-mode .qr-matrix { border-color: rgba(251, 191, 36, 0.4); background: rgba(69, 26, 3, 0.5); }
+    .qr-cell { background: transparent; border-radius: 1px; transition: background 0.3s; }
+    .qr-cell.active { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
+    .bearer-mode .qr-cell.active { background: var(--bearer); box-shadow: 0 0 4px var(--bearer); }
+    
+    .token-badge { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 9px; vertical-align: middle; margin-left: 6px; font-weight: 700; text-shadow: none; border: none;}
+    .bearer-badge { background: linear-gradient(135deg, #451a03, #b45309); color: #fde68a; border: 1px solid #fbbf24; padding: 2px 6px; border-radius: 4px; font-size: 9px; vertical-align: middle; margin-left: 6px; font-weight: 700; text-shadow: none;}
+
+    /* ePurse Liquidity Modules: NFC, P2P, Scanner */
+    .scanner-line { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); box-shadow: 0 0 15px 2px var(--accent-glow); opacity: 0; pointer-events: none; z-index: 5; }
+    .scanner-wrap.scanning .scanner-line { animation: scan-sweep 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; }
+    @keyframes scan-sweep { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none;}
+    .modal-overlay.active { opacity: 1; pointer-events: auto;}
+    .bio-modal-card { background: var(--card-glass); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 24px; padding: 32px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(56, 189, 248, 0.1); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .modal-overlay.active .bio-modal-card { transform: scale(1); }
+    .nfc-ripple { position: absolute; border: 2px solid #38bdf8; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; animation: nfc-wave 1.5s infinite ease-out; opacity: 0; }
+    @keyframes nfc-wave { 0% { width: 30px; height: 30px; opacity: 1; } 100% { width: 120px; height: 120px; opacity: 0; } }
+
+    /* Utilities */
+    .hidden { display: none !important; }
+    .mt-4 { margin-top: 16px; } .mb-4 { margin-bottom: 16px; } .mb-2 { margin-bottom: 8px; }
+    .text-sm { font-size: 13px; } .text-xs { font-size: 11px; } .text-muted { color: var(--muted); }
+
+    /* --- NEW: ePurse & Registry Styles --- */
+    .epurse-card { background: linear-gradient(135deg, #1e3a8a, #3b82f6, #0f172a); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.1); margin-top: 16px; transition: all 0.3s ease; }
+    .epurse-card.pulse-glow { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), inset 0 1px 1px rgba(255,255,255,0.5); transform: scale(1.02); }
+    .epurse-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 60%); pointer-events: none; }
+    .epurse-balance { font-size: 32px; font-weight: 700; font-family: ui-monospace, "SF Mono", monospace; color: #fff; text-shadow: 0 2px 10px rgba(59,130,246,0.5); position: relative; z-index: 2; }
+    .epurse-label { font-size: 11px; text-transform: uppercase; color: #93c5fd; letter-spacing: 0.1em; margin-bottom: 4px; position: relative; z-index: 2; }
+    .tier-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.1em; margin-left: 8px; vertical-align: middle; transition: all 0.5s ease; }
+    .tier-bronze { background: linear-gradient(135deg, #78350f, #b45309); color: #fef3c7; border: 1px solid #d97706; }
+    .tier-silver { background: linear-gradient(135deg, #475569, #94a3b8); color: #f8fafc; border: 1px solid #cbd5e1; box-shadow: 0 0 10px rgba(148,163,184,0.4); }
+    .tier-gold { background: linear-gradient(135deg, #854d0e, #eab308); color: #fef08a; border: 1px solid #fde047; box-shadow: 0 0 15px rgba(234,179,8,0.6); }
+    .yield-float { position: absolute; color: #4ade80; font-family: ui-monospace, monospace; font-size: 12px; font-weight: bold; pointer-events: none; animation: floatUp 1.5s ease-out forwards; z-index: 10; white-space: nowrap; }
+    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-30px) scale(1.2); } }
+    
+    .api-key-box { background: rgba(0,0,0,0.4); border: 1px dashed rgba(168, 85, 247, 0.4); padding: 12px; border-radius: 12px; font-family: ui-monospace, monospace; font-size: 11px; color: #d8b4fe; word-break: break-all; margin-top: 12px; display: none; animation: slideDown 0.3s ease forwards;}
+    .api-key-box.active { display: block; }
+    .registry-btn { background: linear-gradient(135deg, #a855f7, #7e22ce); color: #fff; box-shadow: 0 8px 20px rgba(168,85,247,0.3); border:none; }
+    .registry-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(168,85,247,0.5); }
+    
+    .thumbcode-display { margin-top: 16px; padding: 16px; border-radius: 12px; background: linear-gradient(145deg, rgba(34,197,94,0.1), rgba(0,0,0,0.4)); border: 1px solid rgba(34,197,94,0.3); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .thumbcode-display span.code { font-family: ui-monospace, monospace; letter-spacing: 0.2em; font-size: 18px; font-weight: 700; color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <!-- Background Layer -->
+  <canvas id="nodeCanvas" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-2; pointer-events:none;"></canvas>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Header -->
+  <header>
+    <div>
+      <h1>
+        <span class="logo">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+        </span>
+        ThumbsUp
+      </h1>
+      <div class="tagline">Interactive Ecosystem Platform</div>
+    </div>
+  </header>
+
+  <!-- Side Navigation -->
+  <nav class="floating-nav">
+    <button class="nav-icon-btn active" data-tab="consumer" title="Consumer Hub (Vote, Polls, Tips)">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    </button>
+    <button class="nav-icon-btn" data-tab="creator" title="Creator Dashboard">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+    </button>
+    <button class="nav-icon-btn" data-tab="epurse" title="ePurse Wallet & Issuance">
+      <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+    </button>
+    <button class="nav-icon-btn" data-tab="registry" title="Ecosystem Registries">
+      <svg class="icon" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+    </button>
+    <button class="nav-icon-btn" data-tab="playbook" title="Playbook & Ecosystem Map">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+    </button>
+    <button class="nav-icon-btn" data-tab="network" title="Network Ledger & Validators">
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+    </button>
+    
+    <div class="nav-divider"></div>
+    <button class="nav-icon-btn active" id="viewWeb" title="Web View">
+      <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+    </button>
+    <button class="nav-icon-btn" id="viewMobile" title="Mobile Simulator">
+      <svg class="icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+    </button>
+  </nav>
+
+  <main id="mainContainer">
+
+    <!-- ==========================================
+         TAB 1: CONSUMER ENGAGEMENT
+         ========================================== -->
+    <div id="tab-consumer" class="tab-content">
+      <div class="grid">
+        <!-- Sentiment Capture -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">Sentiment Capture</div>
+              <span class="badge">App View</span>
+            </div>
+            <h2 style="margin:0 0 16px 0; font-size:20px;">What do you think?</h2>
+            <div class="vote-block">
+              <div class="vote-btn up" id="btnUp" onclick="selectVote('up')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+              </div>
+              <div class="vote-btn down" id="btnDown" onclick="selectVote('down')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
+              </div>
+            </div>
+            <div style="position:relative; z-index:2; margin-bottom: 16px;">
+              <textarea id="feedbackMsg" placeholder="Give detailed feedback..."></textarea>
+              <button class="btn btn-primary" style="position:absolute; bottom:24px; right:12px; padding:6px 16px;" onclick="submitSentiment()">Submit</button>
+            </div>
+            <div class="reward-box" id="rewardBox" style="opacity:0.5; transition: opacity 0.3s;">
+              <div class="reward-icon">T</div>
+              <div>
+                <div style="font-weight:700; color:var(--text); font-size:16px;">10 Thumbs</div>
+                <div style="font-size:11px; color:var(--warning);">Earned on submission</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Governance Vote & Quick Polls -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">Governance Vote</div>
+              <span class="badge green">Live</span>
+            </div>
+            <h2 style="margin:0 0 16px 0; font-size:18px;">Add dark mode</h2>
+            <p class="text-sm text-muted mb-4">Protocol improvement proposal #42</p>
+            <div class="grid-2" style="gap:12px; margin-bottom:24px; position:relative; z-index:2;">
+              <button class="btn btn-secondary" onclick="castGovVote('for')">For</button>
+              <button class="btn btn-secondary" onclick="castGovVote('against')">Against</button>
+            </div>
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 24px 0; position:relative; z-index:2;"></div>
+            <div class="card-header" style="margin-bottom: 12px;">
+              <div class="card-title">Poll Results</div>
+            </div>
+            <div class="poll-row">
+              <div class="poll-header"><span>Yes</span> <span>65%</span></div>
+              <div class="poll-track"><div class="poll-fill winner" id="pollYes" style="width:0%">65%</div></div>
+            </div>
+            <div class="poll-row">
+              <div class="poll-header"><span>No</span> <span>35%</span></div>
+              <div class="poll-track"><div class="poll-fill" id="pollNo" style="width:0%">35%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tip Jar -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">Send a tip</div>
+              <span class="badge orange">Web3</span>
+            </div>
+            <p class="text-sm text-muted mb-4">Support the creator instantly with a tip from your protocol wallet.</p>
+            <div class="tip-grid">
+              <div class="tip-btn" onclick="sendTip(1)">1 T</div>
+              <div class="tip-btn" onclick="sendTip(2)">2 T</div>
+              <div class="tip-btn" onclick="sendTip(5)">5 T</div>
+              <div class="tip-btn" onclick="sendTip(10)">10 T</div>
+            </div>
+            <input type="number" id="customTip" placeholder="Custom amount" style="margin-top:8px;" />
+            <button class="btn btn-primary" style="width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); box-shadow:0 8px 20px rgba(245,158,11,0.3);" onclick="sendCustomTip()">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              Send Tip
+            </button>
+            <p class="text-xs text-muted mt-4 text-center">You can instantly reward the poll creator. Transactions settle on the ThumbsUp ledger.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 2: CREATOR DASHBOARD
+         ========================================== -->
+    <div id="tab-creator" class="tab-content hidden">
+      <div class="grid-2">
+        <!-- Creator Form -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Creator Dashboard
+              </div>
+            </div>
+            <h3 style="margin:0 0 12px 0; font-size: 16px;">What's your content about?</h3>
+            <div style="position:relative; z-index:2; margin-bottom:24px;">
+              <textarea placeholder="Write a description..." style="min-height: 120px;"></textarea>
+            </div>
+            <h3 style="margin:0 0 12px 0; font-size: 16px;">Monetization options</h3>
+            <div class="creator-toggle">
+              <div class="creator-toggle-label"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Unlock for price</div>
+              <div style="display:flex; align-items:center; gap:16px;">
+                <span style="font-family:monospace; font-weight:700;">$ 2.50 T</span>
+                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+              </div>
+            </div>
+            <div class="creator-toggle">
+              <div class="creator-toggle-label"><svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> Tip jar (Suggested: 1T, 5T, 10T)</div>
+              <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+            </div>
+            <div class="creator-toggle">
+              <div class="creator-toggle-label"><svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> NFT badge rewards</div>
+              <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+            </div>
+            <div class="creator-toggle">
+              <div class="creator-toggle-label"><svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Sponsorship slot</div>
+              <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics & Publishing -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">Analytics Snapshot</div>
+            </div>
+            <p class="text-sm text-muted">Real-time performance metrics pulled directly from the ledger ecosystem.</p>
+            <div class="analytics-row" style="margin-top: 24px;">
+              <div class="stat-box">
+                <span class="stat-label">Engagement</span>
+                <span class="stat-val up">85% <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Revenue</span>
+                <span class="stat-val warn">410 T</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Top Supporter</span>
+                <span class="stat-val" style="font-size:14px;">Alex <svg class="icon" style="color:#ef4444;fill:#ef4444;width:12px;height:12px;" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></span>
+              </div>
+            </div>
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 24px 0; position:relative; z-index:2;"></div>
+            
+            <h3 style="margin:0 0 12px 0; font-size: 14px; position:relative; z-index:2;">Publish Content to Ledger</h3>
+            <button class="btn btn-primary" style="width:100%;" onclick="publishContent()">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Publish & Monetize
+            </button>
+          </div>
+        </div>
+
+        <!-- NEW: Interactive Functions Registry -->
+        <div class="card-wrapper" style="grid-column: 1 / -1;">
+          <div class="card" style="background: linear-gradient(135deg, rgba(15,23,42,0.8), rgba(2,6,23,0.9));">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                Interactive Functions Registry
+              </div>
+              <span class="badge purple">Smart Contracts</span>
+            </div>
+            <p class="text-sm text-muted mb-2">Deploy engagement modules directly to the Consumer Hub. Incentivize users using your protocol balance.</p>
+            
+            <div class="module-grid">
+              
+              <!-- 1. Quick Poll Module -->
+              <div class="module-box">
+                <h4><svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Tokenized Quick Poll</h4>
+                <div class="input-group">
+                  <label>Poll Question</label>
+                  <input type="text" id="regPollQ" placeholder="e.g., Add dark mode?" />
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <div class="input-group" style="flex:1;">
+                    <label>Option 1</label>
+                    <input type="text" id="regPollA" placeholder="Yes" />
+                  </div>
+                  <div class="input-group" style="flex:1;">
+                    <label>Option 2</label>
+                    <input type="text" id="regPollB" placeholder="No" />
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label>Bounty Pool ($THUMB)</label>
+                  <input type="number" id="regPollReward" placeholder="100" />
+                </div>
+                <div style="margin-top:auto; padding-top:12px;">
+                  <button class="btn btn-secondary" style="width:100%; border-color:var(--highlight); color:var(--highlight);" onclick="deployModule('poll')">Deploy Poll</button>
+                </div>
+              </div>
+
+              <!-- 2. Sentiment Capture Module -->
+              <div class="module-box">
+                <h4><svg class="icon" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> Sentiment Capture</h4>
+                <p class="text-xs text-muted" style="margin-top:0; margin-bottom:16px;">Attach up/down sentiment capture to your next post and reward users for detailed feedback.</p>
+                <div class="input-group">
+                  <label>Reward per User ($THUMB)</label>
+                  <input type="number" id="regSentReward" placeholder="10" value="10" />
+                </div>
+                <div class="creator-toggle" style="background:rgba(0,0,0,0.4); padding:10px 12px; margin-bottom:12px;">
+                  <span class="text-xs font-weight:600;">Require written feedback</span>
+                  <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+                <div style="margin-top:auto;">
+                  <button class="btn btn-secondary" style="width:100%; border-color:var(--accent); color:var(--accent);" onclick="deployModule('sentiment')">Enable Sentiment</button>
+                </div>
+              </div>
+
+              <!-- 3. Branded Challenge Module -->
+              <div class="module-box">
+                <h4><svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Branded Challenge</h4>
+                <p class="text-xs text-muted" style="margin-top:0; margin-bottom:16px;">Launch a high-performing challenge to expand your creator base.</p>
+                <div class="input-group">
+                  <label>Challenge Objective</label>
+                  <input type="text" id="regChallObj" placeholder="e.g., Best video using product" />
+                </div>
+                <div class="input-group">
+                  <label>Winner Prize ($THUMB)</label>
+                  <input type="number" id="regChallPrize" placeholder="500" value="500" />
+                </div>
+                <div style="margin-top:auto; padding-top:12px;">
+                  <button class="btn btn-secondary" style="width:100%; border-color:var(--warning); color:var(--warning);" onclick="deployModule('challenge')">Launch Challenge</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 3: PLAYBOOK & ECOSYSTEM
+         ========================================== -->
+    <div id="tab-playbook" class="tab-content hidden">
+      <div class="grid-2">
+        
+        <!-- Ecosystem Matrix (IMG_2123) -->
+        <div class="card-wrapper" style="grid-column: 1 / -1;">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">ThumbsUp Ecosystem Matrix</div>
+              <span class="badge purple">Macro View</span>
+            </div>
+            <p class="text-sm text-muted mb-4">How users and value flow through the broader network of products, services, locations, and events.</p>
+            
+            <div class="matrix-grid">
+              <div class="matrix-col">
+                <h4>Products</h4>
+                <ul><li>Quick Polls</li><li>Sentiment Capture</li><li>Live Dashboards</li><li>Feedback Forms</li><li>NFT Badges</li><li>Token Wallet</li></ul>
+              </div>
+              <div class="matrix-col">
+                <h4>Services</h4>
+                <ul><li>Sponsorship Marketplace</li><li>Analytics Reports</li><li>Governance DAO Setup</li><li>Data Monetization</li><li>API Integration</li></ul>
+              </div>
+              <div class="matrix-col">
+                <h4>Locations</h4>
+                <ul><li>Retail</li><li>Hospitality</li><li>Education</li><li>Healthcare</li><li>Corporate Spaces</li><li>Online Communities</li></ul>
+              </div>
+              <div class="matrix-col">
+                <h4>Events</h4>
+                <ul><li>Conferences</li><li>Product Launches</li><li>Sports/Esports</li><li>Music/Entertainment</li><li>Civic Engagement</li><li>Hackathons</li></ul>
+              </div>
+            </div>
+            <div style="margin-top: 16px; padding: 12px; background:rgba(0,0,0,0.3); border-radius:12px; border:1px solid rgba(255,255,255,0.05); text-align:center; font-size:12px; color:var(--muted); position:relative; z-index:2;">
+              ↳ Feeding into: <strong>Crypto Rewards & Gratuity</strong> | <strong>Gamification</strong> | <strong>Places & Things Registry</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playbook Table (IMG_2219) -->
+        <div class="card-wrapper" style="grid-column: 1 / -1;">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title">Token Incentive Playbook</div>
+              <span class="badge">Economic Model</span>
+            </div>
+            
+            <table class="playbook-table">
+              <thead><tr><th>Action</th><th>Intended Outcome</th><th>Token Reward</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="playbook-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></div><strong>Publish monetized content</strong></td>
+                  <td>Increase volume & boost quality</td><td class="reward-text">50-200 Thumbs</td>
+                </tr>
+                <tr>
+                  <td><div class="playbook-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg></div><strong>Hit engagement milestone</strong></td>
+                  <td>Boost GM & drive participation</td><td class="reward-text">100 Thumbs</td>
+                </tr>
+                <tr>
+                  <td><div class="playbook-icon"><svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div><strong>Win branded challenge</strong></td>
+                  <td>Expand new creator base</td><td class="reward-text">500 Thumbs</td>
+                </tr>
+                <tr style="background: rgba(245,158,11,0.05);"><td colspan="3" style="padding: 8px 16px; color: var(--warning); font-size:11px; font-weight:bold; letter-spacing:0.1em; text-transform:uppercase;">Partners / Ecosystem</td></tr>
+                <tr>
+                  <td><div class="playbook-icon" style="color:var(--warning);"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div><strong>Launch high-performing campaign</strong></td>
+                  <td>Boost content visibility</td><td class="reward-text">1,000 Thumbs</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 4: NETWORK LEDGER (The Backend View)
+         ========================================== -->
+    <div id="tab-network" class="tab-content hidden">
+      <div class="grid-2">
+        <div class="card-wrapper" style="grid-column: 1 / -1;">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> Global Transaction Explorer</div>
+              <span class="badge green">Live Sync</span>
+            </div>
+            <p class="text-sm text-muted mb-4">A real-time view of all interactions happening on the protocol (Votes, Tips, Monetization, Issuance).</p>
+            
+            <div class="ledger-table" id="ledgerTable">
+              <!-- JS Populated -->
+              <div class="ledger-row" style="opacity: 0.5;">
+                 <span class="badge">SYS</span>
+                 <span class="hash">Waiting for network events...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 5: ePURSE & ISSUANCE
+         ========================================== -->
+    <div id="tab-epurse" class="tab-content hidden">
+      <div class="grid-2">
+        
+        <!-- Issue Asset -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Issue a ThumbCode</div>
+              <span class="badge">Local Node</span>
+            </div>
+            <p class="text-sm text-muted mb-4">Generate tokenized value tied to a receipt.</p>
+            
+            <div style="display:flex; gap:12px; margin-bottom:12px; position:relative; z-index:2;">
+              <div style="flex:1;">
+                <label style="font-size:11px; color:var(--muted); text-transform:uppercase;">Amount</label>
+                <input id="issueAmount" type="number" value="15.00" style="margin-bottom:0;" />
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:11px; color:var(--muted); text-transform:uppercase;">Partner</label>
+                <select id="issuePartner" style="width:100%; padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:var(--text); font-size:14px; outline:none;">
+                  <option value="STARBUCKS">Starbucks</option>
+                  <option value="NIKE">Nike</option>
+                  <option value="ACME">Acme Corp</option>
+                </select>
+              </div>
+            </div>
+
+            <label style="font-size:11px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px; position:relative; z-index:2;">Delivery Mode</label>
+            <div class="delivery-options">
+              <button class="delivery-btn active" data-mode="standard" onclick="setDeliveryMode('standard')">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Standard
+              </button>
+              <button class="delivery-btn" data-mode="web3" onclick="setDeliveryMode('web3')">
+                <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                Web3 Token
+              </button>
+              <button class="delivery-btn" data-mode="bearer" onclick="setDeliveryMode('bearer')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                Offline Bearer
+              </button>
+            </div>
+            
+            <button class="btn btn-primary" onclick="issueCode()" style="width:100%;">Issue Asset</button>
+            
+            <div id="issuedCodeDisplay" class="thumbcode-display hidden" style="position:relative; z-index:2;">
+              <div style="flex:1;">
+                <span id="assetTypeBadge" class="badge green" style="margin-bottom:4px; display:inline-block;">Active Asset</span>
+                <br/>
+                <span id="theCodeValue" class="code">---</span>
+                <div id="cryptoSignature" class="crypto-signature" style="display:none;"></div>
+                <div style="margin-top: 8px;" id="assetMeta">
+                   <small style="color:var(--accent); font-size:10px; font-weight:600; display:block;">TTL: 90s · Single use</small>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction:column; align-items: flex-end; gap: 8px; justify-content: space-between; position:relative; z-index:2;">
+                <div class="qr-matrix" id="qrMatrix" title="Simulated Data Matrix"></div>
+                <button class="btn btn-secondary" id="copyBtn" style="padding:6px 12px; font-size:11px;" onclick="copyThumbCode()">Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ePurse Wallet -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg> ePurse Wallet</div>
+            </div>
+            
+            <div class="epurse-card" id="epurseCard" style="margin-top:0; z-index:2;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:16px; position:relative; z-index:2;">
+                <span style="color:#fff; font-weight:600; font-size:14px; letter-spacing:0.1em;">ePURSE <span id="epurseTier" class="tier-badge tier-bronze">BRONZE</span></span>
+              </div>
+              
+              <div class="epurse-label">Portfolio Balance</div>
+              <div style="display:flex; align-items:baseline; gap:16px; position:relative; z-index:2;">
+                <div class="epurse-balance" id="walletBal">$0.00</div>
+                <div style="position:relative;">
+                  <div style="font-size:18px; color:#f59e0b; font-family:monospace; font-weight:700;" id="tokenBal">0 $THUMB</div>
+                  <div id="yieldAnchor" style="position:absolute; top:-10px; right:-30px;"></div>
+                </div>
+              </div>
+
+              <label class="switch" style="margin-top:12px; display:flex; align-items:center; gap:8px; width:auto; height:auto; z-index:2; position:relative;">
+                <input type="checkbox" id="stakeToggle" onchange="toggleStaking(this)">
+                <span class="slider" style="position:relative; display:inline-block; width:44px; height:24px;"></span>
+                <span style="font-size:12px; color:#93c5fd; font-weight:600;">Auto-Stake (14% APY)</span>
+              </label>
+
+              <!-- QR Scanner & Claim Input -->
+              <div style="display:flex; gap:8px; align-items:center; background:rgba(0,0,0,0.3); padding:6px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); margin-top:16px; position:relative; z-index:2;">
+                <div class="scanner-wrap" id="scannerWrap" style="flex:1; border-radius:8px; position:relative; overflow:hidden;">
+                  <div class="scanner-line"></div>
+                  <input id="claimCodeInput" type="text" placeholder="Paste / Scan Code" style="background:transparent; border:none; padding:6px 10px; font-size:13px; margin:0; width:100%; outline:none; box-shadow:none;" />
+                </div>
+                <button class="btn btn-secondary" style="padding:8px; border:none; background:rgba(255,255,255,0.1);" title="Simulate Camera QR Scan" onclick="simulateScan()">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M4 7V4h3"></path><path d="M4 17v3h3"></path><path d="M20 7V4h-3"></path><path d="M20 17v3h-3"></path><line x1="4" y1="12" x2="20" y2="12" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 4"></line></svg>
+                </button>
+                <button class="btn btn-primary" style="padding:8px 16px; font-size:13px; border-radius:8px; margin:0;" onclick="claimCode()">Claim</button>
+              </div>
+              
+              <!-- Liquidity Interaction Row -->
+              <div style="display:flex; gap:8px; margin-top:12px; position:relative; z-index:2;">
+                 <button class="btn btn-secondary" style="flex:1; padding:10px; font-size:12px; background:rgba(56, 189, 248, 0.1); border-color:rgba(56, 189, 248, 0.3); color:#38bdf8;" onclick="triggerNFC()">
+                   <svg class="icon" viewBox="0 0 24 24"><path d="M4 8.242A15.939 15.939 0 0 1 12 5c3.08 0 5.955.87 8 2.364"/><path d="M6 12.871A11.966 11.966 0 0 1 12 11c2.25 0 4.358.625 6 1.713"/><path d="M8.5 17.5a7.978 7.978 0 0 1 7 0"/><circle cx="12" cy="21" r="1"/></svg>
+                   NFC Tap
+                 </button>
+                 <button class="btn btn-secondary" style="flex:1; padding:10px; font-size:12px; background:rgba(245, 158, 11, 0.1); border-color:rgba(245, 158, 11, 0.3); color:#f59e0b;" onclick="triggerP2P()">
+                   <svg class="icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                   P2P Zap
+                 </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 6: REGISTRIES
+         ========================================== -->
+    <div id="tab-registry" class="tab-content hidden">
+      <div class="grid">
+        
+        <!-- User Registry -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title" style="color:var(--accent);"><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> User Registry</div>
+            </div>
+            <p class="text-sm text-muted mb-4">Provision a new end-user Decentralized ID (DID).</p>
+            <input type="text" id="regUserAlias" placeholder="e.g. Alice" />
+            <button class="btn btn-primary" style="width:100%;" onclick="regUser()">Provision DID</button>
+            <div id="outUser" class="api-key-box"></div>
+          </div>
+        </div>
+
+        <!-- Industry & Partner Registry -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title" style="color:var(--warning);"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Industry Registration</div>
+            </div>
+            <p class="text-sm text-muted mb-4">Register your brand's industry vertical and deploy a validator node.</p>
+            <input type="text" id="regBrand" placeholder="e.g. Acme Corp" />
+            <select id="regSector" style="width:100%; padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:var(--text); font-size:14px; outline:none; margin-bottom:12px; position:relative; z-index:2;">
+              <option value="Retail">Retail & Commerce</option>
+              <option value="F&B">Food & Beverage</option>
+              <option value="Tech">Technology & SaaS</option>
+              <option value="Events">Live Events & Entertainment</option>
+              <option value="Hospitality">Hospitality & Travel</option>
+              <option value="Online">Online / E-commerce</option>
+              <option value="Other">Other</option>
+            </select>
+            <button class="btn registry-btn" style="width:100%; border-radius:12px; padding:12px 20px; font-weight:600; cursor:pointer; position:relative; z-index:2;" onclick="regPartner()">Deploy Node</button>
+            <div id="outPartner" class="api-key-box"></div>
+          </div>
+        </div>
+
+        <!-- Developer Portal -->
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title" style="color:var(--highlight);"><svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Developer API Portal</div>
+            </div>
+            <p class="text-sm text-muted mb-4">Generate API Sandbox keys for direct protocol integration.</p>
+            <input type="text" id="regApp" placeholder="e.g. My FinTech App" />
+            <button class="btn" style="width:100%; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:#fff; box-shadow:0 8px 20px rgba(14,165,233,0.3);" onclick="regDev()">Generate API Keys</button>
+            <div id="outDev" class="api-key-box"></div>
+          </div>
+        </div>
+
+        <!-- Partner SDK Downloads -->
+        <div class="card-wrapper" style="grid-column: 1 / -1;">
+          <div class="card" style="background: linear-gradient(135deg, rgba(15,23,42,0.8), rgba(2,6,23,0.9));">
+            <div class="card-glare"></div>
+            <div class="card-header">
+              <div class="card-title" style="color: #cbd5e1;">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Partner SDK & Integration Tools
+              </div>
+              <span class="badge" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2);">v2.4.0</span>
+            </div>
+            <p class="text-sm text-muted mb-4" style="max-width: 800px;">Download the official ThumbsUp SDKs to integrate local issuance, web3 tipping, and sentiment capture directly into your POS, mobile app, or digital platform. Ensure you have your Developer API Keys ready.</p>
+            
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; position: relative; z-index: 2;">
+              <button class="btn btn-secondary" onclick="downloadSDK('Node.js / Express')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l10 6.5v7L12 22 2 15.5v-7L12 2z"></path><path d="M12 22v-6.5"></path><path d="M22 8.5l-10 7-10-7"></path><path d="M2 15.5l10-7 10 7"></path></svg>
+                Node.js SDK
+              </button>
+              <button class="btn btn-secondary" onclick="downloadSDK('Python / Django')">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Python SDK
+              </button>
+              <button class="btn btn-secondary" onclick="downloadSDK('React / Next.js')">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                React Components
+              </button>
+              <button class="btn btn-secondary" onclick="downloadSDK('iOS / Android')">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                Mobile SDK
+              </button>
+            </div>
+            <div id="sdkLog" class="api-key-box mt-4" style="border-color: rgba(255,255,255,0.2); color: var(--muted);"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- NFC Tap Modal overlay -->
+  <div id="nfcModal" class="modal-overlay" style="display:none;">
+    <div class="bio-modal-card">
+      <div style="position:relative; width:80px; height:80px; margin:0 auto 16px; display:flex; justify-content:center; align-items:center;">
+        <svg class="icon" style="width:48px;height:48px;color:#38bdf8;" viewBox="0 0 24 24"><path d="M4 8.242A15.939 15.939 0 0 1 12 5c3.08 0 5.955.87 8 2.364"/><path d="M6 12.871A11.966 11.966 0 0 1 12 11c2.25 0 4.358.625 6 1.713"/><path d="M8.5 17.5a7.978 7.978 0 0 1 7 0"/><circle cx="12" cy="21" r="1"/></svg>
+        <div class="nfc-ripple"></div>
+        <div class="nfc-ripple" style="animation-delay:0.75s"></div>
+      </div>
+      <h3 style="margin:8px 0; font-size:18px; color:var(--text);">NFC Payment</h3>
+      <p style="color:var(--muted); font-size:12px; max-width:200px; margin:0 auto;">Simulating secure POS terminal contact...</p>
+    </div>
+  </div>
+
+  <!-- Gesture Trigger 3D element -->
+  <div class="gesture-container" id="thumbTrigger">
+    <div class="gesture-sphere" id="gestureSphere">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Network Ticker -->
+  <div class="network-ticker">
+    <div style="color:var(--accent); font-weight:bold; margin-right:16px; display:flex; align-items:center; gap:6px;">
+      <span style="width:6px; height:6px; background:var(--accent); border-radius:50%; box-shadow:0 0 8px var(--accent); animation:pulse 1s infinite;"></span> LIVE
+    </div>
+    <div class="ticker-content" id="tickerLog">
+      <span class="ticker-item">Awaiting interactions...</span>
+      <span class="ticker-item">Awaiting interactions...</span>
+    </div>
+  </div>
+
+  <script>
+    // --- Audio System ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function initAudio() { if(!audioCtx) audioCtx = new AudioContext(); if(audioCtx.state==='suspended') audioCtx.resume(); }
+    function playTone(freq, type, dur, vol=0.05) {
+      if(!audioCtx) return;
+      let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = type; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + dur);
+    }
+    document.body.addEventListener('click', initAudio, {once:true});
+
+    // --- Tab Navigation ---
+    const tabs = document.querySelectorAll('.nav-icon-btn[data-tab]');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.add('hidden'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.remove('hidden');
+        
+        // Trigger poll animation if consumer tab
+        if(tab.dataset.tab === 'consumer') {
+          setTimeout(() => {
+            document.getElementById('pollYes').style.width = '65%';
+            document.getElementById('pollNo').style.width = '35%';
+          }, 100);
+        }
+      });
+    });
+
+    // --- Mobile View Simulator Toggle ---
+    const mainEl = document.getElementById('mainContainer');
+    document.getElementById('viewWeb').addEventListener('click', function() {
+      this.classList.add('active'); document.getElementById('viewMobile').classList.remove('active');
+      mainEl.classList.remove('is-mobile');
+    });
+    document.getElementById('viewMobile').addEventListener('click', function() {
+      this.classList.add('active'); document.getElementById('viewWeb').classList.remove('active');
+      mainEl.classList.add('is-mobile');
+    });
+
+    // Animate Polls on load
+    setTimeout(() => {
+      document.getElementById('pollYes').style.width = '65%';
+      document.getElementById('pollNo').style.width = '35%';
+    }, 500);
+
+    // --- Ledger & Ticker System ---
+    let tickerQueue = ["System initialized. Monitoring ecosystem."];
+    let ledgerTable = document.getElementById('ledgerTable');
+    let ledgerCount = 0;
+
+    function nowTime() { return new Date().toTimeString().slice(0, 8); }
+    function createHash() { return Array.from({length:6}, () => Math.floor(Math.random()*16).toString(16)).join(''); }
+
+    function pushTicker(msg) {
+      tickerQueue.unshift(msg); if(tickerQueue.length > 5) tickerQueue.pop();
+      const html = tickerQueue.map(t => `<span class="ticker-item">${t}</span>`).join('');
+      document.getElementById('tickerLog').innerHTML = html + html; 
+    }
+
+    function addLedgerEntry(badgeType, badgeText, prefix, amtStr) {
+      if(ledgerCount === 0) ledgerTable.innerHTML = ''; // clear waiting msg
+      const id = prefix + createHash().toUpperCase();
+      const entryHtml = `
+        <div class="badge ${badgeType}">${badgeText}</div>
+        <div class="hash">TX-${id}</div>
+        <div class="amt">${amtStr}</div>
+        <div class="time">${nowTime()}</div>
+      `;
+      const row = document.createElement("div"); row.className = "ledger-row"; row.innerHTML = entryHtml;
+      ledgerTable.prepend(row);
+      ledgerCount++;
+      if(ledgerTable.children.length > 15) ledgerTable.removeChild(ledgerTable.lastChild);
+      pulseNetwork(); // flash background nodes
+    }
+
+    // --- Consumer Tab Logic ---
+    let currentVote = null;
+    window.selectVote = function(type) {
+      initAudio();
+      document.getElementById('btnUp').classList.remove('active');
+      document.getElementById('btnDown').classList.remove('active');
+      document.getElementById(`btn${type==='up'?'Up':'Down'}`).classList.add('active');
+      currentVote = type;
+      if(type === 'up') { playTone(523, 'sine', 0.1); setTimeout(()=>playTone(659, 'sine', 0.2), 80); }
+      else { playTone(200, 'sawtooth', 0.1); }
+      document.getElementById('rewardBox').style.opacity = '1';
+    };
+
+    window.submitSentiment = function() {
+      if(!currentVote) return;
+      document.getElementById('feedbackMsg').value = '';
+      fireGesture();
+      pushTicker(`User sentiment captured (${currentVote}). <strong>10 T</strong> rewarded.`);
+      addLedgerEntry('green', 'LOCAL', 'VOTE-', '+10 T');
+      document.getElementById('btnUp').classList.remove('active');
+      document.getElementById('btnDown').classList.remove('active');
+      document.getElementById('rewardBox').style.opacity = '0.5';
+      currentVote = null;
+    };
+
+    window.sendTip = function(amt) {
+      fireGesture(); playTone(1200, 'triangle', 0.05); setTimeout(()=>playTone(1600, 'sine', 0.1), 80);
+      pushTicker(`User tipped creator <strong>${amt} T</strong> instantly.`);
+      addLedgerEntry('orange', 'WEB3', 'TIP-', `-${amt} T`);
+    };
+
+    window.sendCustomTip = function() {
+      const val = document.getElementById('customTip').value;
+      if(val && val > 0) { sendTip(val); document.getElementById('customTip').value = ''; }
+    };
+
+    window.castGovVote = function(choice) {
+      fireGesture();
+      pushTicker(`Governance vote cast: <strong>${choice.toUpperCase()}</strong> on Proposal #42.`);
+      addLedgerEntry('purple', 'GOV', 'POLL-', '0 T');
+    };
+
+    // --- Creator Tab Logic ---
+    window.publishContent = function() {
+      fireGesture();
+      pushTicker(`Creator published monetized content. Smart contract locked <strong>$2.50 T</strong> price.`);
+      addLedgerEntry('green', 'LOCAL', 'PUB-', '0 T (Locked)');
+    }
+
+    window.deployModule = function(type) {
+      fireGesture();
+      let msg = "";
+      let prefix = "";
+      let cost = 0;
+      
+      if(type === 'poll') {
+        const q = document.getElementById('regPollQ').value || "New Proposal";
+        const pool = document.getElementById('regPollReward').value || "100";
+        msg = `Deployed Tokenized Poll: "${q}". Seeded with <strong>${pool} T</strong>.`;
+        prefix = "MOD-POLL-";
+        cost = pool;
+        
+        // Clear inputs
+        document.getElementById('regPollQ').value = '';
+        document.getElementById('regPollA').value = '';
+        document.getElementById('regPollB').value = '';
+        document.getElementById('regPollReward').value = '';
+        
+      } else if (type === 'sentiment') {
+        const reward = document.getElementById('regSentReward').value || "10";
+        msg = `Enabled Sentiment Capture. Yield set to <strong>${reward} T / user</strong>.`;
+        prefix = "MOD-SENT-";
+        cost = "0"; // Cost is per interaction
+        
+      } else if (type === 'challenge') {
+        const obj = document.getElementById('regChallObj').value || "Community Challenge";
+        const prize = document.getElementById('regChallPrize').value || "500";
+        msg = `Launched Branded Challenge: "${obj}". Escrowed <strong>${prize} T</strong>.`;
+        prefix = "MOD-CHAL-";
+        cost = prize;
+        
+        document.getElementById('regChallObj').value = '';
+      }
+
+      pushTicker(`Creator Function Registry: ` + msg);
+      addLedgerEntry('highlight', 'SMART', prefix, cost === "0" ? "Active" : `-${cost} T`);
+    }
+
+    // --- 3D Gesture animation ---
+    const sphere = document.getElementById('gestureSphere');
+    const container = document.getElementById('thumbTrigger');
+    
+    document.addEventListener('mousemove', (e) => {
+      const xAxis = (window.innerWidth / 2 - e.pageX) / 40;
+      const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
+      sphere.style.transform = `rotateY(${-xAxis}deg) rotateX(${yAxis}deg)`;
+    });
+
+    window.fireGesture = function() {
+      initAudio(); playTone(523, 'sine', 0.1); setTimeout(()=>playTone(659, 'sine', 0.2), 80);
+      sphere.classList.remove('pop'); void sphere.offsetWidth; sphere.classList.add('pop');
+      for(let i=0; i<8; i++) {
+        let p = document.createElement('div'); p.className = 'particle';
+        p.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>`;
+        p.style.setProperty('--tx', (Math.random()-0.5)*150+'px');
+        p.style.setProperty('--ty', (Math.random()*-150-50)+'px');
+        p.style.setProperty('--rot', (Math.random()-0.5)*180+'deg');
+        p.style.animation = `fly ${Math.random()+1}s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`;
+        container.appendChild(p);
+        setTimeout(()=>p.remove(), 2000);
+      }
+    };
+    sphere.addEventListener('click', fireGesture);
+
+    // --- Background Node Network ---
+    const canvas = document.getElementById('nodeCanvas');
+    const ctx = canvas.getContext('2d');
+    let nodes = [];
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+    
+    for(let i=0; i<60; i++) nodes.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3, flash:0});
+    
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      nodes.forEach((n, i) => {
+        n.x += n.vx; n.y += n.vy;
+        if(n.x < 0 || n.x > canvas.width) n.vx *= -1;
+        if(n.y < 0 || n.y > canvas.height) n.vy *= -1;
+        if(n.flash > 0) n.flash -= 0.02;
+
+        ctx.beginPath(); ctx.arc(n.x, n.y, 1.5 + (n.flash*3), 0, Math.PI*2);
+        ctx.fillStyle = n.flash > 0 ? `rgba(56, 189, 248, ${Math.max(n.flash, 0.3)})` : 'rgba(148, 163, 184, 0.15)'; 
+        ctx.fill();
+
+        for(let j=i+1; j<nodes.length; j++) {
+          let d = Math.hypot(n.x-nodes[j].x, n.y-nodes[j].y);
+          if(d < 100) {
+            ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.strokeStyle = `rgba(148, 163, 184, ${0.1 * (1 - d/100)})`; ctx.stroke();
+          }
+        }
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    window.pulseNetwork = function() {
+      for(let i=0; i<3; i++) { nodes[Math.floor(Math.random()*nodes.length)].flash = 1; }
+    };
+
+    // --- Simulate Background Network Traffic ---
+    setInterval(() => {
+        if (Math.random() > 0.4) {
+            const acts = [
+              {msg: "voted in governance", type: "purple", txt: "NET", pre: "POLL-", amt: "0 T"},
+              {msg: "tipped creator", type: "orange", txt: "NET", pre: "TIP-", amt: "-"+(Math.floor(Math.random()*10)+1)+" T"},
+              {msg: "published content", type: "green", txt: "NET", pre: "PUB-", amt: "0 T"},
+              {msg: "earned challenge reward", type: "green", txt: "NET", pre: "RWND-", amt: "+500 T"}
+            ];
+            const a = acts[Math.floor(Math.random()*acts.length)];
+            pushTicker(`Network Node ${createHash().substring(0,4)} ${a.msg}.`);
+            addLedgerEntry(a.type, a.txt, a.pre, a.amt);
+        }
+    }, 3500);
+
+    // --- NEW ePurse Logic ---
+    let walletFiat = 0.00;
+    let walletTokens = 0;
+    let activeIssuedCode = null;
+    let activeIssuedAmt = 0;
+    let activeThumbMode = 'standard';
+    let currentDeliveryMode = 'standard';
+    let isStaking = false;
+    let stakingInterval;
+
+    window.setDeliveryMode = function(mode) {
+      currentDeliveryMode = mode;
+      document.querySelectorAll('.delivery-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if(btn.dataset.mode === mode) btn.classList.add('active');
+      });
+    };
+
+    function renderFauxQR(codeStr) {
+      const matrix = document.getElementById('qrMatrix');
+      matrix.innerHTML = "";
+      for (let i = 0; i < 25; i++) {
+        const cell = document.createElement("div"); cell.className = "qr-cell";
+        const charCode = codeStr.charCodeAt(i % codeStr.length);
+        if ((charCode * (i+1)) % 2 === 0 || i === 0 || i === 4 || i === 20 || i === 24) cell.classList.add("active");
+        matrix.appendChild(cell);
+      }
+    }
+
+    window.issueCode = function() {
+      const amt = parseFloat(document.getElementById('issueAmount').value);
+      const partner = document.getElementById('issuePartner').value;
+      if(!amt || amt <= 0) return;
+      
+      activeIssuedCode = Array.from({length:8}, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*32)]).join('');
+      activeIssuedAmt = amt;
+      activeThumbMode = currentDeliveryMode;
+      
+      document.getElementById('theCodeValue').textContent = activeIssuedCode;
+      
+      const display = document.getElementById('issuedCodeDisplay');
+      display.className = 'thumbcode-display'; // reset styles
+      display.classList.remove('hidden');
+
+      if(activeThumbMode === 'bearer') {
+          display.classList.add('bearer-mode');
+          document.getElementById('assetTypeBadge').outerHTML = `<span id="assetTypeBadge" class="badge orange">Bearer Note</span> <span class="bearer-badge">SECURE</span>`;
+          document.getElementById('cryptoSignature').style.display = 'block';
+          document.getElementById('cryptoSignature').textContent = "SIG: 0x" + createHash() + createHash() + "..." + createHash();
+          document.getElementById('assetMeta').innerHTML = `<small style="color:rgba(251, 191, 36, 0.8); font-size:10px; font-weight:600; display:block;">Hold offline. Bearer owns value.</small>`;
+          document.getElementById('copyBtn').textContent = "Save";
+          pushTicker(`Merchant printed Offline Bearer Instrument for <strong>$${amt.toFixed(2)}</strong>.`);
+          addLedgerEntry('orange', 'LOCAL', 'PRNT-', `$${amt.toFixed(2)}`);
+          
+          // Print sound effect
+          initAudio(); 
+          playTone(100, 'square', 0.05); 
+          setTimeout(()=>playTone(150, 'square', 0.05), 80); 
+          setTimeout(()=>playTone(80, 'sawtooth', 0.1), 160);
+      } else if (activeThumbMode === 'web3') {
+          document.getElementById('assetTypeBadge').outerHTML = `<span id="assetTypeBadge" class="badge highlight">Tokenized</span> <span class="token-badge">WEB3</span>`;
+          document.getElementById('cryptoSignature').style.display = 'none';
+          document.getElementById('assetMeta').innerHTML = `<small style="color:var(--highlight); font-size:10px; font-weight:600; display:block;">TTL: 90s · On-chain Asset</small>`;
+          document.getElementById('copyBtn').textContent = "Copy";
+          pushTicker(`Merchant minted Web3 Token for <strong>$${amt.toFixed(2)}</strong> via ${partner}.`);
+          addLedgerEntry('highlight', 'WEB3', 'MINT-', `$${amt.toFixed(2)}`);
+          fireGesture();
+      } else {
+          document.getElementById('assetTypeBadge').outerHTML = `<span id="assetTypeBadge" class="badge green">Standard Asset</span>`;
+          document.getElementById('cryptoSignature').style.display = 'none';
+          document.getElementById('assetMeta').innerHTML = `<small style="color:var(--accent); font-size:10px; font-weight:600; display:block;">TTL: 90s · Single use</small>`;
+          document.getElementById('copyBtn').textContent = "Copy";
+          pushTicker(`Merchant issued Standard Asset for <strong>$${amt.toFixed(2)}</strong> via ${partner}.`);
+          addLedgerEntry('green', 'LOCAL', 'ISSU-', `$${amt.toFixed(2)}`);
+          fireGesture();
+      }
+
+      renderFauxQR(activeIssuedCode);
+    }
+
+    window.copyThumbCode = function() {
+      if(!activeIssuedCode) return;
+      navigator.clipboard.writeText(activeIssuedCode).catch(()=>{});
+      
+      const btn = document.getElementById('copyBtn');
+      const ogText = btn.textContent;
+      btn.textContent = activeThumbMode === 'bearer' ? "Saved!" : "Copied!";
+      setTimeout(() => { btn.textContent = ogText; }, 2000);
+      
+      pushTicker(`Asset Code exported locally.`);
+    }
+
+    window.simulateScan = function() {
+        const wrap = document.getElementById('scannerWrap');
+        wrap.classList.remove('scanning'); void wrap.offsetWidth; wrap.classList.add('scanning');
+        initAudio(); playTone(1200, 'square', 0.05, 0.02);
+        
+        setTimeout(() => {
+            wrap.classList.remove('scanning');
+            if (activeIssuedCode) {
+                document.getElementById('claimCodeInput').value = activeIssuedCode;
+                pushTicker(`Simulated Camera/QR Scan interpreted code: ${activeIssuedCode}`);
+                setTimeout(claimCode, 200);
+            } else {
+                playTone(200, 'sawtooth', 0.2);
+                pushTicker(`Scan failed: No valid code in view.`);
+            }
+        }, 600);
+    }
+
+    function updateEpurseUI() {
+      document.getElementById('walletBal').textContent = "$" + walletFiat.toFixed(2);
+      document.getElementById('tokenBal').textContent = Math.floor(walletTokens) + " $THUMB";
+      
+      const tier = document.getElementById('epurseTier');
+      tier.className = "tier-badge";
+      if(walletTokens >= 200) { tier.classList.add('tier-gold'); tier.textContent = 'GOLD'; }
+      else if(walletTokens >= 50) { tier.classList.add('tier-silver'); tier.textContent = 'SILVER'; }
+      else { tier.classList.add('tier-bronze'); tier.textContent = 'BRONZE'; }
+    }
+
+    window.claimCode = function() {
+      const input = document.getElementById('claimCodeInput').value.trim().toUpperCase();
+      if(!input) return;
+      
+      if(input === activeIssuedCode) {
+        walletFiat += activeIssuedAmt;
+        
+        let claimPrefix = 'CLAM-';
+        let badgeColor = 'green';
+        let badgeTxt = 'LOCAL';
+        let actionMsg = 'claimed Asset';
+        
+        if (activeThumbMode === 'bearer') {
+            claimPrefix = 'RDEM-'; badgeColor = 'orange'; badgeTxt = 'LOCAL'; actionMsg = 'redeemed Bearer Instrument';
+        } else if (activeThumbMode === 'web3') {
+            claimPrefix = 'BURN-'; badgeColor = 'highlight'; badgeTxt = 'WEB3'; actionMsg = 'claimed Token';
+            walletTokens += (activeIssuedAmt * 10); // arbitrary conversion for web3 bonus demo
+        }
+
+        fireGesture();
+        pushTicker(`ePurse successfully ${actionMsg} <strong>${input}</strong>.`);
+        addLedgerEntry(badgeColor, badgeTxt, claimPrefix, `+$${activeIssuedAmt.toFixed(2)}`);
+        
+        activeIssuedCode = null;
+        activeIssuedAmt = 0;
+        document.getElementById('issuedCodeDisplay').classList.add('hidden');
+        document.getElementById('claimCodeInput').value = '';
+        
+        const card = document.getElementById('epurseCard');
+        card.classList.remove('pulse-glow'); void card.offsetWidth; card.classList.add('pulse-glow');
+        setTimeout(()=>card.classList.remove('pulse-glow'), 500);
+        
+        updateEpurseUI();
+      } else {
+        initAudio(); playTone(200, 'sawtooth', 0.2);
+        pushTicker(`Failed claim: Code ${input} invalid or already used.`);
+      }
+    }
+
+    window.triggerNFC = function() {
+        if (walletFiat < 1.0) { 
+            initAudio(); playTone(200, 'sawtooth', 0.2); 
+            pushTicker(`NFC Tap failed: Insufficient fiat liquidity.`);
+            return; 
+        }
+        const modal = document.getElementById('nfcModal');
+        modal.style.display = 'flex'; void modal.offsetWidth; modal.classList.add('active');
+        
+        initAudio();
+        playTone(100, 'square', 0.05); setTimeout(()=>playTone(150, 'square', 0.05), 80);
+        
+        setTimeout(() => {
+            playTone(523, 'sine', 0.1); setTimeout(()=>playTone(659, 'sine', 0.2), 80);
+            modal.classList.remove('active'); setTimeout(() => modal.style.display = 'none', 300);
+            
+            const spendAmt = Math.min(walletFiat, (Math.random() * 8 + 2)); 
+            walletFiat -= spendAmt;
+            updateEpurseUI();
+            
+            pushTicker(`ePurse paid <strong>$${spendAmt.toFixed(2)}</strong> via NFC Tap-to-Pay.`);
+            addLedgerEntry('highlight', 'POS', 'SPND-', `-$${spendAmt.toFixed(2)}`);
+            fireGesture();
+        }, 1500);
+    }
+
+    window.triggerP2P = function() {
+        if (walletTokens < 5.0) {
+            initAudio(); playTone(200, 'sawtooth', 0.2); 
+            pushTicker(`P2P Zap failed: Insufficient $THUMB token liquidity.`);
+            return;
+        }
+        const sendAmt = Math.min(walletTokens, Math.floor(Math.random() * 15 + 5));
+        walletTokens -= sendAmt;
+        updateEpurseUI();
+        
+        initAudio(); playTone(1200, 'triangle', 0.05); setTimeout(()=>playTone(1600, 'sine', 0.1), 80);
+        
+        const recipient = "eP-" + createHash().substring(0,4).toUpperCase();
+        pushTicker(`ePurse zapped <strong>${sendAmt} T</strong> to peer ${recipient}.`);
+        addLedgerEntry('orange', 'P2P', 'ZAP-', `-${sendAmt} T`);
+        fireGesture();
+    }
+
+    window.toggleStaking = function(el) {
+      isStaking = el.checked;
+      if(isStaking) {
+        pushTicker(`ePurse Staking Activated (14% APY).`);
+        stakingInterval = setInterval(() => {
+          if(walletTokens > 0) {
+            const yieldAmt = walletTokens * 0.01;
+            walletTokens += yieldAmt;
+            updateEpurseUI();
+            
+            const anchor = document.getElementById('yieldAnchor');
+            const floater = document.createElement('div');
+            floater.className = 'yield-float';
+            floater.textContent = '+' + yieldAmt.toFixed(2);
+            anchor.appendChild(floater);
+            setTimeout(()=>floater.remove(), 1500);
+          }
+        }, 3000);
+      } else {
+        clearInterval(stakingInterval);
+        pushTicker(`ePurse Staking Deactivated.`);
+      }
+    }
+
+    // --- NEW Registries Logic ---
+    window.regUser = function() {
+      const alias = document.getElementById('regUserAlias').value || "Anonymous";
+      const out = document.getElementById('outUser');
+      fireGesture();
+      out.innerHTML = `<strong>DID:</strong> did:thumb:user:${createHash()}${createHash()}<br/><strong>Alias:</strong> ${alias}<br/><strong>Status:</strong> Active`;
+      out.classList.add('active');
+      pushTicker(`New User DID Provisioned: ${alias}.`);
+      addLedgerEntry('purple', 'REG', 'DID-', '0 T');
+    }
+
+    window.regPartner = function() {
+      const brand = document.getElementById('regBrand').value || "New Brand";
+      const sector = document.getElementById('regSector').value;
+      const out = document.getElementById('outPartner');
+      fireGesture();
+      out.innerHTML = `<strong>NODE_ID:</strong> nd_${createHash()}${createHash()}<br/><strong>Brand:</strong> ${brand}<br/><strong>Sector:</strong> ${sector}<br/><strong>Status:</strong> Syncing`;
+      out.classList.add('active');
+      pushTicker(`Partner Registry: ${brand} deployed validator node.`);
+      addLedgerEntry('warning', 'REG', 'NODE-', '0 T');
+    }
+
+    window.regDev = function() {
+      const app = document.getElementById('regApp').value || "Test App";
+      const out = document.getElementById('outDev');
+      fireGesture();
+      out.innerHTML = `<strong>API_KEY:</strong> pk_test_${createHash()}${createHash()}<br/><strong>SEC_KEY:</strong> sk_test_${createHash()}${createHash()}<br/><strong>Status:</strong> Sandbox Ready`;
+      out.classList.add('active');
+      pushTicker(`Dev Portal: App '${app}' generated API keys.`);
+      addLedgerEntry('highlight', 'REG', 'KEY-', '0 T');
+    }
+
+    window.downloadSDK = function(platform) {
+      const out = document.getElementById('sdkLog');
+      initAudio(); playTone(1200, 'square', 0.05); setTimeout(()=>playTone(1600, 'sine', 0.1), 80);
+      out.innerHTML = `<strong>Simulated Download Started:</strong> thumbsup-sdk-${platform.toLowerCase().replace(/[\s/.]/g, '')}-v2.4.0.zip<br/><strong>Integrations:</strong> Tipping, Sentiment Voting, Web3 Issuance<br/><strong>Status:</strong> Ready for development`;
+      out.classList.add('active');
+      pushTicker(`Developer initialized <strong>${platform}</strong> SDK download package.`);
+      addLedgerEntry('highlight', 'DEV', 'SDK-', '0 T');
+    }
+
+  </script>
+</body>
+</html>
